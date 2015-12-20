@@ -46,6 +46,18 @@ var _getHeader = function(msgData, header) {
     return "";
 }
 
+var _getDomain = function(url) {
+    var domain;
+    if (url.indexOf("://") > -1) {
+        domain = url.split('/')[2];
+    }
+    else {
+        domain = url.split('/')[0];
+    }
+    domain = domain.split(':')[0];
+    return domain;
+}
+
 var gatherData = function(pageTokenLocal, max, count, cb) {
     _getMessages({pageToken: pageTokenLocal, token: token}, function(data) {
         var responseData = JSON.parse(data);
@@ -70,7 +82,7 @@ var gatherData = function(pageTokenLocal, max, count, cb) {
 
                 var unsub = html.match(/<\s*a[^>]+href=[\"\']([^\"\']+)[^>]+>Unsubscribe<\/a>/i);
                 if(unsub && unsub.length > 0) {
-                    callback(null, {from: from, subject: subject, unsubLink: unsub[1]});
+                    callback(null, {from: from, subject: subject, unsubLink: unsub[1], domain: _getDomain(unsub[1])});
                 } else {
                     callback(null, null);
                 }
