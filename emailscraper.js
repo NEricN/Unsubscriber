@@ -70,7 +70,7 @@ var gatherData = function(pageTokenLocal, max, count, cb) {
 
                 var unsub = html.match(/<\s*a[^>]+href=[\"\']([^\"\']+)[^>]+>Unsubscribe<\/a>/i);
                 if(unsub && unsub.length > 0) {
-                    callback(null, [from,subject,unsub[1]].join(','));
+                    callback(null, {from: from, subject: subject, unsubLink: unsub[1]});
                 } else {
                     callback(null, null);
                 }
