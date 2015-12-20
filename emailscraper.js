@@ -46,7 +46,7 @@ var _getHeader = function(msgData, header) {
     return "";
 }
 
-var gatherData = function(pageTokenLocal, max, count) {
+var gatherData = function(pageTokenLocal, max, count, cb) {
     _getMessages({pageToken: pageTokenLocal, token: token}, function(data) {
         var responseData = JSON.parse(data);
         pageToken = responseData.nextPageToken;
@@ -65,28 +65,21 @@ var gatherData = function(pageTokenLocal, max, count) {
                     callback(null, "");
                     return;
                 }
-                var subject = "\"" + _getHeader(msgData, "subject").toLowerCase().replace("\"", "") + "\"";
-                var from = "\"" + _getHeader(msgData, "from").toLowerCase().replace("\"", "") + "\"";
+                var subject = _getHeader(msgData, "subject").toLowerCase().replace("\"", "");
+                var from = _getHeader(msgData, "from").toLowerCase().replace("\"", "");
 
                 var unsub = html.match(/<\s*a[^>]+href=[\"\']([^\"\']+)[^>]+>Unsubscribe<\/a>/i);
                 if(unsub && unsub.length > 0) {
                     callback(null, [from,subject,unsub[1]].join(','));
                 } else {
-                    callback(null, "");
+                    callback(null, null);
                 }
             })
         }, function(err, results) {
             if(err) {
                 console.log(err);
             } else {
-
-                fs.appendFile('gmailScraped.csv', "\n" + results.filter(function(data) { return data; }).join("\n"), function (err) {
-                    if(err) {
-                        console.log(err);
-                    }
-
-                    console.log(pageToken + " :: " + max + " :: " + count||0);
-
+                cb(results.filter(function(data) { return data; }), function(err) {
                     if(max > 0 && pageToken) {
                         gatherData(pageToken, max, count);
                     }
@@ -96,4 +89,8 @@ var gatherData = function(pageTokenLocal, max, count) {
     })
 }
 
-gatherData(pageToken, max, currentCount);
+var scrapeAllEmails = function(cb) {
+    gatherData(null, Infinity, 0, cb);
+}
+
+module.exports.scrapeAllEmails = scrapeAllEmails;
