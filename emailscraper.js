@@ -2,12 +2,6 @@ var request = require('request');
 var fs = require('fs');
 var async = require('async');
 
-var args = process.argv.slice(2);
-var token = args[0];
-var max = args[1]||1;
-var pageToken = args[2];
-var currentCount = parseInt(args[3]||'0');
-
 var _getMessages = function(opts, cb) {
     request.get(
         {
@@ -17,7 +11,7 @@ var _getMessages = function(opts, cb) {
             if(error||body.error) {
                 console.log("Error getting email: "+error||body.error||JSON.stringify(body));
             }
-            if(cb)
+            else if(cb)
                 cb(body);
         }
     )
@@ -32,7 +26,7 @@ var _getMessage = function(opts, cb) {
             if(error||body.error) {
                 console.log("Error getting email: "+error||body.error||JSON.stringify(body));
             }
-            if(cb)
+            else if(cb)
                 cb(body);
         }
     )
@@ -58,7 +52,7 @@ var _getDomain = function(url) {
     return domain;
 }
 
-var gatherData = function(pageTokenLocal, max, count, cb) {
+var gatherData = function(token, pageTokenLocal, max, count, cb) {
     _getMessages({pageToken: pageTokenLocal, token: token}, function(data) {
         var responseData = JSON.parse(data);
         pageToken = responseData.nextPageToken;
@@ -77,8 +71,8 @@ var gatherData = function(pageTokenLocal, max, count, cb) {
                     callback(null, "");
                     return;
                 }
-                var subject = _getHeader(msgData, "subject").toLowerCase().replace("\"", "");
-                var from = _getHeader(msgData, "from").toLowerCase().replace("\"", "");
+                var subject = _getHeader(msgData, "subject").toLowerCase().replace(/\"/g, "").trim();
+                var from = _getHeader(msgData, "from").toLowerCase().replace(/\"/g, "").trim();
 
                 var unsub = html.match(/<\s*a[^>]+href=[\"\']([^\"\']+)[^>]+>Unsubscribe<\/a>/i);
                 if(unsub && unsub.length > 0) {
@@ -91,9 +85,11 @@ var gatherData = function(pageTokenLocal, max, count, cb) {
             if(err) {
                 console.log(err);
             } else {
-                cb(results.filter(function(data) { return data; }), function(err) {
+                cb(results.filter(function(data) { return data; }), function(err, finalCb) {
                     if(max > 0 && pageToken) {
-                        gatherData(pageToken, max, count);
+                        gatherData(token, pageToken, max, count, cb);
+                    } else {
+                        finalCb();
                     }
                 });
             }
@@ -101,8 +97,8 @@ var gatherData = function(pageTokenLocal, max, count, cb) {
     })
 }
 
-var scrapeAllEmails = function(cb) {
-    gatherData(null, Infinity, 0, cb);
+var scrapeAllEmails = function(key, cb) {
+    gatherData(key, null, Infinity, 0, cb);
 }
 
 module.exports.scrapeAllEmails = scrapeAllEmails;
